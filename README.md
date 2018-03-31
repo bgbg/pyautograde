@@ -1,6 +1,9 @@
 pyTestExam
 ============
 
+Usage
+-----
+
 Test student code using [py.test](https://docs.pytest.org/) machinery.
 
 1.  Write test file `sample_tests.py` to check code:
@@ -40,6 +43,38 @@ Test student code using [py.test](https://docs.pytest.org/) machinery.
     ```
 
 4.  Be nice!
+
+Explanations
+---------------
+
+*   `conftest.py` defines 2 new options, `--exam` (student's code) and
+    `--solution` (teacher's code).
+*   The student code is imported as module `exam`, from which the
+    functions and classes to be tested are tested:
+
+    ``` python
+    def test_modulus(exam):
+
+        assert almost_equal(exam.modulus(3, 0), 3)
+        assert almost_equal(exam.modulus(0, 4), 4)
+        assert almost_equal(exam.modulus(3, 4), 5)
+    ```
+
+*   The solution should be used to test further in the code without
+    being impacted by previous failing tests.  Say `f2()` depends on
+    `f1()`: one wants to test `f2()` without being impacted by an
+    invalid implementation of `f1()`, so tests should be written using
+    `f1()` from solution.
+
+    E.g., the following test will test `Point.mod` method using
+    solution `modulus` function and `Point` class:
+
+    ``` python
+    def test_point_mod(exam, solution, sample_point):
+
+        exam.modulus = solution.modulus
+        assert almost_equal(exam.Point.mod.__func__(sample_point), 5)
+    ```
 
 To do
 ------
