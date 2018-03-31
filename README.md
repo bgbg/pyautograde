@@ -53,4 +53,4 @@ See also
 
 * initial StackOverflow
   [question](https://stackoverflow.com/questions/27694679/use-pytest-to-test-and-grade-student-code)
-* [pyGrade}(https://github.com/tapilab/pygrade/blob/master/example/Example.ipynb)
+* [pyGrade](https://github.com/tapilab/pygrade/blob/master/example/Example.ipynb)
