@@ -3,7 +3,23 @@
 # Time-stamp: <2015-05-22 00:58 ycopin@lyonovae03.in2p3.fr>
 
 import pytest
-import imp  # Import standard library
+from importlib.machinery import SourceFileLoader
+
+
+# Initialize a global score
+score = {"total": 100}  # Use a dict to allow modifications
+
+
+@pytest.fixture(scope="session")
+def score_fixture():
+    # This fixture allows tests to access and modify the global score
+    global score
+    return score
+
+
+def load_source(what, path):
+    solution = SourceFileLoader(what, path).load_module()
+    return solution
 
 
 def pytest_addoption(parser):
@@ -16,9 +32,7 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def solution(request):
     """Import code specified with command-line custom option '--solution'."""
-
-    soluce = imp.load_source("solution", request.config.getoption("--solution"))
-
+    soluce = load_source(what="solution", path=request.config.getoption("--solution"))
     return soluce
 
 
@@ -30,11 +44,9 @@ def exam(request):
 
     # Import module (standard __import__ does not support import by filename)
     codename = request.config.getoption("--exam")
-    try:
-        # print "Importing {!r}...".format(codename)
-        code = imp.load_source("code", codename)
-    except Exception as err:
-        print("ERROR while importing {!r}".format(codename))
-        raise
-
+    code = load_source(what="code", path=codename)
     return code
+
+
+def pytest_sessionfinish(session, exitstatus):
+    print(f"\nRemaining Score: {score['total']}")
