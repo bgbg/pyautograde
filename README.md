@@ -1,5 +1,13 @@
-pyTestExam
+Automated grading
 ============
+
+This project is a fork of [pyTestExam](https://gitlab.in2p3.fr/ycopin/pyTestExam) by Yannick Copin.
+
+The goal is to provide a simple way to test student's code using [py.test](https://docs.pytest.org/) machinery.
+
+
+Below is the original README.md file, the usage and explanations may be outdated.
+
 
 Usage
 -----
