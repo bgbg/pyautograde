@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+# AUTHOR_ID: YOUR_ID_HERE
+
 
 def modulus(x, y):
+# GRADER: module 'code' has no attribute 'Point'
+# GRADER: -40 points
     return (x**2 + y**2) ** 0.5
 
 
@@ -14,7 +18,12 @@ class Point(object):
             raise ValueError("Invalid parameters")
 
     def __str__(self):
-        return "Point({:+.2f}, {:+.2f})".format(self.x, self.y)
+    # GRADER: assert '' == 'Point(+3.00, +4.00)'
+    # GRADER:   - Point(+3.00, +4.00)
+    # GRADER: -20 points
+        return ""
 
     def mod(self):
-        return modulus(self.x, self.y)
+        return modulus(
+            self.x, self.y
+        )  
