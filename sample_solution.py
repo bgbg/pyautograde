@@ -25,5 +25,6 @@ class Point(object):
 
     def mod(self):
         return modulus(
-            self.x, self.y
-        )  
+            self.x,
+            self.y,
+        )
