@@ -1,0 +1,16 @@
+black
+defopt
+jupyter
+jupyter_contrib_nbextensions
+matplotlib
+numpy
+numpy
+openpyxl
+pandas
+pandas
+pytest
+scikit-learn
+scikit-learn
+scipy
+seaborn
+statsmodels
