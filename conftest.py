@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Time-stamp: <2015-05-22 00:58 ycopin@lyonovae03.in2p3.fr>
-
+import numpy as np
 import pytest
 from importlib.machinery import SourceFileLoader
 
@@ -49,4 +49,5 @@ def exam(request):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    print(f"\nRemaining Score: {score['total']}")
+    remaining = np.round(score["total"], 1)
+    print(f"\nRemaining Score: {remaining}")

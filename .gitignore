@@ -2,3 +2,4 @@
 *cache*/
 id_rsa.pub
 data/submissions/*
+data/tests/*

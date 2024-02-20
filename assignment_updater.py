@@ -1,34 +1,25 @@
 import ast
+import os
 import re
 from typing import Literal
+import numpy as np
 
 AUTHOR_ID_TOKEN = "# AUTHOR_ID:"
 GRADER_TOKEN = "# GRADER:"
 
 
-def update_assignment(solution, function, err, score_fixture, points):
-    """
-    Inserts a formatted error message as a comment immediately after the function's header and docstring but before
-    the function's code in the specified Python file. This is intended for providing automated feedback in an
-    educational context.
-
-    Args:
-        solution: A module object, representing the student's solution file loaded with importlib.
-        function: A function object, specifying the target function within the solution file for feedback insertion.
-        err: str, the error message to be inserted as feedback.
-        score_fixture: Unused in this function, included for API consistency.
-        points: Unused in this function, included for API consistency.
-    """
+def update_assignment(solution, function, message, score_fixture, points):
+    raise NotImplementedError(
+        "need to implement logic to add grader notes to the solution file, not a function"
+    )
     solution_file = solution.__file__
 
     with open(solution_file, "r") as file:
         content = file.read()
 
-    # Parse the file into an AST tree
     tree = ast.parse(content)
 
     def find_function(node, target):
-        """Recursively searches for the specified function in the AST tree."""
         if isinstance(node, ast.FunctionDef) and node.name == target.__name__:
             return node
         for child in ast.iter_child_nodes(node):
@@ -39,25 +30,26 @@ def update_assignment(solution, function, err, score_fixture, points):
     func_node = find_function(tree, function)
 
     if func_node:
-        insertion_point = (
-            func_node.body[0].lineno
-            if ast.get_docstring(func_node)
-            else func_node.lineno
-        )
-        lines = content.splitlines()
+        docstring = ast.get_docstring(func_node)
+        if docstring:
+            docstring_lines = len(docstring.splitlines())
+            insertion_point = func_node.body[0].lineno + docstring_lines - 1
+        else:
+            insertion_point = func_node.lineno
 
-        # Find the function's indentation level
+        lines = content.splitlines()
         func_indent = len(re.match(r"\s*", lines[func_node.lineno - 1]).group(0))
         indent_str = " " * func_indent
-
-        # Prepare the error message with the correct indentation
         err_lines = [
-            indent_str + f"{GRADER_TOKEN} " + line for line in str(err).split("\n")
+            indent_str + GRADER_TOKEN + line for line in str(message).split("\n")
         ]
-        err_lines.append(indent_str + f"{GRADER_TOKEN} -{points} points")
-        score_fixture["total"] -= points
+        points = np.round(points, 1)
+        points = -points
 
-        # Adjust for decorators and multi-line definitions
+        err_lines.append(indent_str + f"{GRADER_TOKEN} {points} points")
+        score_fixture["total"] += points
+
+        # Adjust for multi-line function definitions and decorators
         while not lines[insertion_point - 1].strip().endswith(":"):
             insertion_point += 1
 
@@ -127,11 +119,12 @@ def sum_up_grader_points(
             match = re.search(re.escape(AUTHOR_ID_TOKEN) + r"(.*)", line)
             if match:
                 author_id = match.group(1).strip()
+    fn_str = os.path.splitext(os.path.basename(fn))[0]
     if output_format == "readable":
-        print(f"author_id: {author_id:<20s}, total: {total:.1f}")
+        print(f"{fn_str:<30s}, author_id: {author_id:<20s}, total: {total:.1f}")
     elif output_format == "csv":
-        print(f"{author_id},{total:.1f}")
-    elif output_format is "quiet":
+        print(f"{fn_str},{author_id},{total:.1f}")
+    elif output_format == "quiet":
         pass
     else:
         raise ValueError("Invalid output format")
