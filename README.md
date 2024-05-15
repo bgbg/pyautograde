@@ -87,9 +87,9 @@ Explanations
 To do
 ------
 
-- [ ] automatic grading: set a note per test, and cumulate tests
+- [x] automatic grading: set a note per test, and cumulate tests
 - [ ] reporting
-- [ ] sandboxing: run student's code in a sandbox
+- [x] sandboxing: run student's code in a sandbox
 
 See also
 ----------
