@@ -1,17 +1,21 @@
 import ast
+import json
 import os
 import re
+from datetime import datetime
 from typing import Literal
 import numpy as np
+import csv
+
+from conftest import load_source
 
 AUTHOR_ID_TOKEN = "# AUTHOR_ID:"
 GRADER_TOKEN = "# GRADER:"
 
 
-def update_assignment(solution, function, message, score_fixture, points):
-    raise NotImplementedError(
-        "need to implement logic to add grader notes to the solution file, not a function"
-    )
+def _update_assignment_function(
+    solution, function, message, score_fixture, points_to_reduce
+):
     solution_file = solution.__file__
 
     with open(solution_file, "r") as file:
@@ -33,9 +37,9 @@ def update_assignment(solution, function, message, score_fixture, points):
         docstring = ast.get_docstring(func_node)
         if docstring:
             docstring_lines = len(docstring.splitlines())
-            insertion_point = func_node.body[0].lineno + docstring_lines - 1
+            insertion_point = func_node.body[0].lineno + docstring_lines + 1
         else:
-            insertion_point = func_node.lineno
+            insertion_point = func_node.body[0].lineno + 1
 
         lines = content.splitlines()
         func_indent = len(re.match(r"\s*", lines[func_node.lineno - 1]).group(0))
@@ -43,21 +47,53 @@ def update_assignment(solution, function, message, score_fixture, points):
         err_lines = [
             indent_str + GRADER_TOKEN + line for line in str(message).split("\n")
         ]
-        points = np.round(points, 1)
-        points = -points
+        points_to_reduce = np.round(points_to_reduce, 1)
+        points = -points_to_reduce
 
         err_lines.append(indent_str + f"{GRADER_TOKEN} {points} points")
         score_fixture["total"] += points
 
-        # Adjust for multi-line function definitions and decorators
-        while not lines[insertion_point - 1].strip().endswith(":"):
-            insertion_point += 1
-
         for line in reversed(err_lines):
-            lines.insert(insertion_point, line)
+            lines.insert(insertion_point + 1, line)
 
         with open(solution_file, "w") as file:
             file.write("\n".join(lines))
+
+
+def _update_assignment_file(solution, message, score_fixture, points_to_reduce):
+    solution_file = solution.__file__
+
+    with open(solution_file, "r") as file:
+        content = file.read()
+
+    lines = content.splitlines()
+    err_lines = [f"{GRADER_TOKEN} {line}" for line in str(message).split("\n")]
+    points_to_reduce = np.round(points_to_reduce, 1)
+    points = -points_to_reduce
+    err_lines.append(f"{GRADER_TOKEN} {points} points")
+    score_fixture["total"] += points
+    lines.extend(err_lines)
+
+    with open(solution_file, "w") as file:
+        file.write("\n".join(lines))
+
+
+def update_assignment(
+    solution, function, message, score_fixture, points_to_reduce: float
+):
+    if function is not None:
+        _update_assignment_function(
+            solution,
+            function,
+            message,
+            score_fixture,
+            points_to_reduce=points_to_reduce,
+        )
+    elif hasattr(solution, "__file__"):
+        # update the entire file
+        _update_assignment_file(
+            solution, message, score_fixture, points_to_reduce=points_to_reduce
+        )
 
 
 def cleanup_grader_notes(fn: str) -> str:
@@ -87,10 +123,32 @@ def cleanup_grader_notes(fn: str) -> str:
     return "".join(lines_out)
 
 
+def author_id_from_file(fn: str) -> str:
+    author_id = "UNKNOWN"
+    lines = open(fn, "r").readlines()
+    for line in lines:
+        # find the AUTHOR_ID token
+        match = re.search(re.escape(AUTHOR_ID_TOKEN) + r"(.*)", line)
+        if match:
+            author_id = match.group(1).strip()
+    if author_id == "UNKNOWN":
+        # try loading the get_id_number function
+        try:
+            solution = load_source("solution", fn)
+            author_id = str(solution.get_id_number())
+        except Exception as e:
+            # guess from the file name
+            toks = os.path.basename(fn).split("_")
+            if len(toks) > 1 and toks[0].lower() == "id":
+                author_id = toks[1]
+    return author_id
+
+
 def sum_up_grader_points(
     fn: str,
     starting_points=100,
-    output_format: Literal["readable", "csv", "quiet"] = "readable",
+    quiet=False,
+    output_file: str = None,
 ) -> (str, float):
     """
     Sums up the grader points in the specified Python file.
@@ -98,15 +156,16 @@ def sum_up_grader_points(
     Args:
         fn: str, the name of the file to be checked.
         starting_points: int, the starting total of grader points.
-        output_format: str, the format of the output. Either "readable" or "csv".
-
+        quiet: bool, if True, suppress all output.
+        output_file: str, the name of the file to write the output to. The file is csv format, each line is appended
+        to the file.
     Returns:
         int, the total number of grader points in the file.
     """
     with open(fn, "r") as file:
         lines = file.readlines()
 
-    author_id = "UNKNOWN"
+    author_id = author_id_from_file(fn)
     total = starting_points
     for line in lines:
         rex = re.escape(GRADER_TOKEN) + r".*?(-?\d+(\.\d+)?)(?=\s*points)"
@@ -114,21 +173,27 @@ def sum_up_grader_points(
         if match:
             d = float(match.group(1))
             total += d
-        else:
-            # find the AUTHOR_ID token
-            match = re.search(re.escape(AUTHOR_ID_TOKEN) + r"(.*)", line)
-            if match:
-                author_id = match.group(1).strip()
     fn_str = os.path.splitext(os.path.basename(fn))[0]
-    if output_format == "readable":
-        print(f"{fn_str:<30s}, author_id: {author_id:<20s}, total: {total:.1f}")
-    elif output_format == "csv":
-        print(f"{fn_str},{author_id},{total:.1f}")
-    elif output_format == "quiet":
-        pass
-    else:
-        raise ValueError("Invalid output format")
-    return (author_id, total)
+    total = int(np.round(total, 0))
+    if not quiet:
+        print(f"{fn_str:<30s}, author_id: {author_id:<20s}, total: {total}")
+    if output_file:
+        write_header = not os.path.exists(output_file)
+        with open(output_file, "a") as file:
+            writer = csv.DictWriter(
+                file, fieldnames=["timestamp", "fn", "author_id", "total"]
+            )
+            if write_header:
+                writer.writeheader()
+            writer.writerow(
+                {
+                    "timestamp": datetime.now(),
+                    "fn": fn_str,
+                    "author_id": author_id,
+                    "total": total,
+                }
+            )
+    return author_id, total
 
 
 if __name__ == "__main__":

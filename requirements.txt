@@ -2,13 +2,16 @@ black
 defopt
 jupyter
 jupyter_contrib_nbextensions
+langchain-openai
 matplotlib
 numpy
 numpy
+openai
 openpyxl
 pandas
 pandas
 pytest
+pytest-xdist
 scikit-learn
 scikit-learn
 scipy

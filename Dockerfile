@@ -19,4 +19,6 @@ FROM continuumio/anaconda3
 COPY requirements.txt /tmp/
 RUN pip install --requirement /tmp/requirements.txt
 
+# expose port 8888
+EXPOSE 8888
 

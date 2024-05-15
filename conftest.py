@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Time-stamp: <2015-05-22 00:58 ycopin@lyonovae03.in2p3.fr>
+import warnings
+
 import numpy as np
 import pytest
 from importlib.machinery import SourceFileLoader
@@ -18,7 +20,10 @@ def score_fixture():
 
 
 def load_source(what, path):
-    solution = SourceFileLoader(what, path).load_module()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        solution = SourceFileLoader(what, path).load_module()
+
     return solution
 
 
